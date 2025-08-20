@@ -7,6 +7,8 @@
             [admin.com.ui :as ui]
             [admin.com.worker :as worker]
             [admin.com.schema :as schema]
+            [admin.com.cms :as cms]
+            [admin.com.uploads :as uploads]
             [clojure.test :as test]
             [clojure.tools.logging :as log]
             [clojure.tools.namespace.repl :as tn-repl]
@@ -20,7 +22,9 @@
    (biff/authentication-module {})
    home/module
    schema/module
-   worker/module])
+   worker/module
+   cms/module
+   uploads/module])
 
 (def routes [["" {:middleware [mid/wrap-site-defaults]}
               (keep :routes modules)]
