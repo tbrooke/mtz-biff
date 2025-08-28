@@ -3,133 +3,100 @@
             [admin.com.middleware :as mid]
             [admin.com.ui :as ui]
             [admin.com.settings :as settings]
-            [rum.core :as rum]
-            [xtdb.api :as xt]
-            [ring.adapter.jetty9 :as jetty]
-            [cheshire.core :as cheshire]))
+            [xtdb.api :as xt]))
 
-(defn set-foo [{:keys [session params] :as ctx}]
-  (biff/submit-tx ctx
-    [{:db/op :update
-      :db/doc-type :user
-      :xt/id (:uid session)
-      :user/foo (:foo params)}])
-  {:status 303
-   :headers {"location" "/app"}})
 
-(defn bar-form [{:keys [value]}]
-  (biff/form
-   {:hx-post "/app/set-bar"
-    :hx-swap "outerHTML"}
-   [:label.block {:for "bar"} "Bar: "
-    [:span.font-mono (pr-str value)]]
-   [:.h-1]
-   [:.flex
-    [:input.w-full#bar {:type "text" :name "bar" :value value}]
-    [:.w-3]
-    [:button.btn {:type "submit"} "Update"]]
-   [:.h-1]
-   [:.text-sm.text-gray-600
-    "This demonstrates updating a value with HTMX."]))
 
-(defn set-bar [{:keys [session params] :as ctx}]
-  (biff/submit-tx ctx
-    [{:db/op :update
-      :db/doc-type :user
-      :xt/id (:uid session)
-      :user/bar (:bar params)}])
-  (biff/render (bar-form {:value (:bar params)})))
-
-(defn message [{:msg/keys [text sent-at]}]
-  [:.mt-3 {:_ "init send newMessage to #message-header"}
-   [:.text-gray-600 (biff/format-date sent-at "dd MMM yyyy HH:mm:ss")]
-   [:div text]])
-
-(defn notify-clients [{:keys [admin.com/chat-clients]} tx]
-  (doseq [[op & args] (::xt/tx-ops tx)
-          :when (= op ::xt/put)
-          :let [[doc] args]
-          :when (contains? doc :msg/text)
-          :let [html (rum/render-static-markup
-                      [:div#messages {:hx-swap-oob "afterbegin"}
-                       (message doc)])]
-          ws @chat-clients]
-    (jetty/send! ws html)))
-
-(defn send-message [{:keys [session] :as ctx} {:keys [text]}]
-  (let [{:keys [text]} (cheshire/parse-string text true)]
-    (biff/submit-tx ctx
-      [{:db/doc-type :msg
-        :msg/user (:uid session)
-        :msg/text text
-        :msg/sent-at :db/now}])))
-
-(defn chat [{:keys [biff/db]}]
-  (let [messages (q db
-                    '{:find (pull msg [*])
-                      :in [t0]
-                      :where [[msg :msg/sent-at t]
-                              [(<= t0 t)]]}
-                    (biff/add-seconds (java.util.Date.) (* -60 10)))]
-    [:div {:hx-ext "ws" :ws-connect "/app/chat"}
-     [:form.mb-0 {:ws-send true
-                  :_ "on submit set value of #message to ''"}
-      [:label.block {:for "message"} "Write a message"]
-      [:.h-1]
-      [:textarea.w-full#message {:name "text"}]
-      [:.h-1]
-      [:.text-sm.text-gray-600
-       "Sign in with an incognito window to have a conversation with yourself."]
-      [:.h-2]
-      [:div [:button.btn {:type "submit"} "Send message"]]]
-     [:.h-6]
-     [:div#message-header
-      {:_ "on newMessage put 'Messages sent in the past 10 minutes:' into me"}
-      (if (empty? messages)
-        "No messages yet."
-        "Messages sent in the past 10 minutes:")]
-     [:div#messages
-      (map message (sort-by :msg/sent-at #(compare %2 %1) messages))]]))
 
 (defn app [{:keys [session biff/db] :as ctx}]
-  (let [{:user/keys [email foo bar]} (xt/entity db (:uid session))]
+  (let [{:user/keys [email]} (xt/entity db (:uid session))
+        recent-posts (q db
+                        '{:find (pull post [*])
+                          :where [[post :post/title]]
+                          :order-by [[post :post/created-at :desc]]})]
     (ui/page
      {}
-     [:div "Signed in as " email ". "
+     [:div.flex.justify-between.items-center.mb-6
+      [:div
+       [:h1.text-3xl.font-bold.text-gray-800 "Admin Dashboard"]
+       [:p.text-gray-600 "Signed in as " [:span.font-semibold email]]]
       (biff/form
        {:action "/auth/signout"
         :class "inline"}
-       [:button.text-blue-500.hover:text-blue-800 {:type "submit"}
-        "Sign out"])
-      "."]
-     [:.h-6]
-     (biff/form
-      {:action "/app/set-foo"}
-      [:label.block {:for "foo"} "Foo: "
-       [:span.font-mono (pr-str foo)]]
-      [:.h-1]
-      [:.flex
-       [:input.w-full#foo {:type "text" :name "foo" :value foo}]
-       [:.w-3]
-       [:button.btn {:type "submit"} "Update"]]
-      [:.h-1]
-      [:.text-sm.text-gray-600
-       "This demonstrates updating a value with a plain old form."])
-     [:.h-6]
-     (bar-form {:value bar})
-     [:.h-6]
-     (chat ctx))))
+       [:button.text-red-500.hover:text-red-700.text-sm {:type "submit"}
+        "Sign out"])]
+     
+     ;; Quick Stats
+     [:div.grid.grid-cols-1.md:grid-cols-3.gap-6.mb-8
+      [:div.bg-blue-50.p-6.rounded-lg.border
+       [:h3.text-lg.font-semibold.text-blue-800 "Blog Posts"]
+       [:p.text-2xl.font-bold.text-blue-900 (count recent-posts)]
+       [:a.text-blue-600.hover:text-blue-800.text-sm {:href "/posts"} "Manage Posts →"]]
+      
+      [:div.bg-green-50.p-6.rounded-lg.border
+       [:h3.text-lg.font-semibold.text-green-800 "Events"]
+       [:p.text-2xl.font-bold.text-green-900 "0"]
+       [:a.text-green-600.hover:text-green-800.text-sm {:href "/events"} "Manage Events →"]]
+      
+      [:div.bg-purple-50.p-6.rounded-lg.border
+       [:h3.text-lg.font-semibold.text-purple-800 "Media"]
+       [:p.text-2xl.font-bold.text-purple-900 "0"]
+       [:a.text-purple-600.hover:text-purple-800.text-sm {:href "/uploads"} "Manage Media →"]]]
+     
+     ;; Recent Content
+     [:div.mb-8
+      [:div.flex.justify-between.items-center.mb-4
+       [:h2.text-xl.font-semibold.text-gray-800 "Recent Blog Posts"]
+       [:a.btn.btn-primary {:href "/posts/new"} "New Post"]]
+      
+      (if (empty? recent-posts)
+        [:div.bg-gray-50.p-8.rounded-lg.text-center
+         [:p.text-gray-600 "No blog posts yet."]
+         [:a.btn.btn-primary.mt-4 {:href "/posts/new"} "Create Your First Post"]]
+        [:div.bg-white.shadow.rounded-lg
+         (for [post (take 5 recent-posts)]
+           [:div.p-4.border-b.last:border-b-0
+            [:div.flex.justify-between.items-start
+             [:div
+              [:h3.font-semibold.text-gray-800 (:post/title post)]
+              [:p.text-gray-600.text-sm.mt-1 
+               "Created " (when (:post/created-at post)
+                            (biff/format-date (:post/created-at post) "dd MMM yyyy"))]]
+             [:div.flex.gap-2
+              [:a.text-blue-600.hover:text-blue-800.text-sm 
+               {:href (str "/posts/edit/" (:xt/id post))} "Edit"]
+              [:a.text-green-600.hover:text-green-800.text-sm 
+               {:href (str "/posts/view/" (:xt/id post))} "View"]]]])])]
+     
+     ;; Quick Actions
+     [:div
+      [:h2.text-xl.font-semibold.text-gray-800.mb-4 "Quick Actions"]
+      [:div.grid.grid-cols-1.md:grid-cols-2.lg:grid-cols-4.gap-4
+       [:a.block.p-4.bg-white.border.rounded-lg.hover:shadow-md.transition-shadow
+        {:href "/posts/new"}
+        [:div.text-blue-600.text-2xl.mb-2 "📝"]
+        [:h3.font-semibold.text-gray-800 "New Blog Post"]
+        [:p.text-gray-600.text-sm "Write a new article"]]
+       
+       [:a.block.p-4.bg-white.border.rounded-lg.hover:shadow-md.transition-shadow
+        {:href "/events/new"}
+        [:div.text-green-600.text-2xl.mb-2 "📅"]
+        [:h3.font-semibold.text-gray-800 "New Event"]
+        [:p.text-gray-600.text-sm "Schedule an event"]]
+       
+       [:a.block.p-4.bg-white.border.rounded-lg.hover:shadow-md.transition-shadow
+        {:href "/uploads"}
+        [:div.text-purple-600.text-2xl.mb-2 "🖼️"]
+        [:h3.font-semibold.text-gray-800 "Upload Media"]
+        [:p.text-gray-600.text-sm "Add images or files"]]
+       
+       [:a.block.p-4.bg-white.border.rounded-lg.hover:shadow-md.transition-shadow
+        {:href "/settings"}
+        [:div.text-gray-600.text-2xl.mb-2 "⚙️"]
+        [:h3.font-semibold.text-gray-800 "Settings"]
+        [:p.text-gray-600.text-sm "Configure the site"]]]])))
 
-(defn ws-handler [{:keys [admin.com/chat-clients] :as ctx}]
-  {:status 101
-   :headers {"upgrade" "websocket"
-             "connection" "upgrade"}
-   :ws {:on-connect (fn [ws]
-                      (swap! chat-clients conj ws))
-        :on-text (fn [ws text-message]
-                   (send-message ctx {:ws ws :text text-message}))
-        :on-close (fn [ws status-code reason]
-                    (swap! chat-clients disj ws))}})
+
 
 (def about-page
   (ui/page
@@ -145,9 +112,5 @@
 (def module
   {:static {"/about/" about-page}
    :routes ["/app" {:middleware [mid/wrap-signed-in]}
-            ["" {:get app}]
-            ["/set-foo" {:post set-foo}]
-            ["/set-bar" {:post set-bar}]
-            ["/chat" {:get ws-handler}]]
-   :api-routes [["/api/echo" {:post echo}]]
-   :on-tx notify-clients})
+            ["" {:get app}]]
+   :api-routes [["/api/echo" {:post echo}]]})

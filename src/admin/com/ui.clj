@@ -36,11 +36,25 @@
                                     head))))
    body))
 
+(defn navbar [{:keys [session]}]
+  (when session
+    [:nav.bg-gray-800.text-white.p-4
+     [:div.max-w-6xl.mx-auto.flex.justify-between.items-center
+      [:div.flex.space-x-4
+       [:a.hover:text-gray-300 {:href "/app"} "Dashboard"]
+       [:a.hover:text-gray-300 {:href "/posts"} "Blog Posts"]
+       [:a.hover:text-gray-300 {:href "/admin"} "Admin"]
+       [:a.hover:text-gray-300 {:href "/uploads"} "Media"]
+       [:a.hover:text-gray-300 {:href "/database-test"} "DB Test"]]
+      [:div.text-sm
+       "Signed in as " (get-in session [:user/email] "user")]]]))
+
 (defn page [ctx & body]
   (base
    ctx
+   (navbar ctx)
    [:.flex-grow]
-   [:.p-3.mx-auto.max-w-screen-sm.w-full
+   [:.p-3.mx-auto.max-w-6xl.w-full
     (when (bound? #'csrf/*anti-forgery-token*)
       {:hx-headers (cheshire/generate-string
                     {:x-csrf-token csrf/*anti-forgery-token*})})

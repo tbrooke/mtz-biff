@@ -1,0 +1,29 @@
+{
+  "calva.replConnectSequences": [
+    {
+      "name": "Biff Dev REPL",
+      "projectType": "deps.edn",
+      "cljsType": "none",
+      "nReplPortFile": [".nrepl-port"],
+      "connectCode": "(println \"Connected to Biff REPL on port 7888\")",
+      "afterCLJReplJackInCode": "(in-ns 'repl)",
+      "menuSelections": {
+        "cljAliases": ["dev", "nrepl"]
+      },
+      "customJackInCommandLine": "clojure -M:dev:nrepl"
+    }
+  ],
+  "calva.jackInEnv": {
+    "BIFF_PROFILE": "dev"
+  },
+  "calva.nReplPortFile": [".nrepl-port"],
+  "calva.autoConnect": false,
+  "calva.customConnectSequence": {
+    "name": "Connect to existing REPL on 7888",
+    "projectType": "deps.edn",
+    "cljsType": "none",
+    "nReplPortFile": [".nrepl-port"],
+    "port": 7888,
+    "afterCLJReplJackInCode": "(in-ns 'repl)"
+  }
+}

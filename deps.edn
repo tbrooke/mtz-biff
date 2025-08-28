@@ -4,6 +4,8 @@
         metosin/muuntaja                    {:mvn/version "0.6.8"}
         ring/ring-defaults                  {:mvn/version "0.3.4"}
         org.clojure/clojure                 {:mvn/version "1.11.1"}
+        org.postgresql/postgresql           {:mvn/version "42.7.1"}
+        com.xtdb/xtdb-core                  {:mvn/version "1.24.1"}
 
         ;; Notes on logging: https://gist.github.com/jacobobryant/76b7a08a07d5ef2cc076b048d078f1f3
         org.slf4j/slf4j-simple     {:mvn/version "2.0.0-alpha5"}
@@ -17,6 +19,10 @@
                    "-XX:+CrashOnOutOfMemoryError"
                    "-Dbiff.env.BIFF_PROFILE=dev"]
         :main-opts ["-m" "com.biffweb.task-runner" "tasks/tasks"]}
+  :nrepl {:extra-paths ["test" "dev"]
+          :extra-deps {nrepl/nrepl {:mvn/version "1.3.1"}}
+          :jvm-opts ["-Djdk.attach.allowAttachSelf"]
+          :main-opts ["-m" "nrepl.cmdline" "--port" "7888"]}
   :prod {:jvm-opts ["-XX:-OmitStackTraceInFastThrow"
                     "-XX:+CrashOnOutOfMemoryError"
                     "-Dbiff.env.BIFF_PROFILE=prod"]

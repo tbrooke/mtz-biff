@@ -9,6 +9,9 @@
             [admin.com.schema :as schema]
             [admin.com.cms :as cms]
             [admin.com.uploads :as uploads]
+            [admin.com.posts :as posts]
+            [admin.com.database-test :as database-test]
+            [admin.com.admin :as admin]
             [clojure.test :as test]
             [clojure.tools.logging :as log]
             [clojure.tools.namespace.repl :as tn-repl]
@@ -24,7 +27,10 @@
    schema/module
    worker/module
    cms/module
-   uploads/module])
+   uploads/module
+   posts/module
+   database-test/module
+   admin/module])
 
 (def routes [["" {:middleware [mid/wrap-site-defaults]}
               (keep :routes modules)]

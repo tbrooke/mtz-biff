@@ -8,10 +8,8 @@
  :biff/port     #long #or [#biff/env "PORT" 8080]
 
  :biff.xtdb/dir          "storage/xtdb"
- :biff.xtdb/topology     #keyword #or [#profile {:prod #biff/env "PROD_XTDB_TOPOLOGY"
-                                                 :default #biff/env "XTDB_TOPOLOGY"}
-                                       "standalone"]
- :biff.xtdb.jdbc/jdbcUrl #biff/secret "XTDB_JDBC_URL"
+ :biff.xtdb/topology     #keyword #or [#biff/env "XTDB_TOPOLOGY" "standalone"]
+ :biff.xtdb.jdbc/jdbcUrl #or [#biff/env "XTDB_JDBC_URL" nil]
 
  :biff.beholder/enabled         #profile {:dev true :default false}
  :biff.beholder/paths           ["src" "resources" "test"]
@@ -21,11 +19,11 @@
  :biff/jwt-secret               #biff/secret JWT_SECRET
  :biff.refresh/enabled          #profile {:dev true :default false}
 
- :mailersend/api-key  #biff/secret MAILERSEND_API_KEY
+ :mailersend/api-key  #or [#biff/secret MAILERSEND_API_KEY nil]
  :mailersend/from     #biff/env MAILERSEND_FROM
  :mailersend/reply-to #biff/env MAILERSEND_REPLY_TO
 
- :recaptcha/secret-key #biff/secret RECAPTCHA_SECRET_KEY
+ :recaptcha/secret-key #or [#biff/secret RECAPTCHA_SECRET_KEY nil]
  :recaptcha/site-key   #biff/env RECAPTCHA_SITE_KEY
 
  :biff.nrepl/port #or [#biff/env NREPL_PORT "7888"]
