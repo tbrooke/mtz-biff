@@ -9,7 +9,7 @@
 
  :biff.xtdb/dir          "storage/xtdb"
  :biff.xtdb/topology     #keyword #or [#biff/env "XTDB_TOPOLOGY" "standalone"]
- :biff.xtdb.jdbc/jdbcUrl #or [#biff/env "XTDB_JDBC_URL" nil]
+ :biff.xtdb.jdbc/jdbcUrl #or [#biff/secret "XTDB_JDBC_URL" nil]
 
  :biff.beholder/enabled         #profile {:dev true :default false}
  :biff.beholder/paths           ["src" "resources" "test"]
